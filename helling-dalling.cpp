@@ -15,6 +15,7 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 // IR sensoren
 int IRsensor1= 8, IRsensor2 = 9,IRsensor3 = 10,IRsensor4 = 11 ;
 //MOTOR pinnen
+int SpeedPin= A3;// to adjust motor speed
 int IN1 = 13;  // play right  
 int IN2= 12;  // play left
 // Buttonen pinnen
@@ -35,8 +36,9 @@ const int buttonPin4= 5;
  int lastButtonState2=LOW;
  int lastButtonState3=LOW;
  int lastButtonState4=LOW;
+ // for ultrasonic sensor 
  float tijd;
- float cm;
+ int cmt_tmp= 0;
  unsigned long lastDebounceTime = 0;  // de laatste keer dat de uitvoerpin werd omgeschakeld
  unsigned long debounceDelay = 50;     // de debounce-tijd; verhogen als de outputtrillen
  // Motor variables
@@ -49,7 +51,7 @@ const int buttonPin4= 5;
   int lastAutoPlaats;
 
 // IRsensor variables
-  int IRsensor[4] = {IRsensor1,IRsensor2,IRsensor3,IRsensor4};
+  int IRsensor[4] = {IRsensor1,IRsensor2,IRsensor3,IRsensor4};   // bunu bir soralim bu sekilde calisir mi?
 
 
 //----------------------------------------------------
@@ -59,7 +61,7 @@ void setup()
  {
   pinMode(buttonPin1,INPUT);pinMode(buttonPin2,INPUT);pinMode(buttonPin3,INPUT);pinMode(buttonPin4,INPUT);
   // voor mototbesturing pinnen
-  pinMode(IN1,OUTPUT);pinMode(IN2,OUTPUT);
+  pinMode(IN1,OUTPUT);pinMode(IN2,OUTPUT);pinMode(SpeedPin,OUTPUT);
   // IR sensor en Ultrasonic sensor
   pinMode(IRsensor1,INPUT);pinMode(IRsensor2,INPUT);pinMode(IRsensor3,INPUT);pinMode(IRsensor4,INPUT);
   pinMode(echo, INPUT);pinMode(trig, OUTPUT);
@@ -72,10 +74,13 @@ void setup()
   lcd.init();                    
   lcd.backlight();
   lcd.print("Hallo");
+  delay(1000);
+  
+// Serial.begin(9600);
 
 }
 
-//functie die de laatste plaats van de auto
+//The function that determines the position of your vehicle to us with IR sensors.
 int LastAutoPlaats()
 {
 
@@ -106,29 +111,43 @@ void MeasureDistance()
   delayMicroseconds(2);
   digitalWrite(trig, LOW);
   tijd = pulseIn(echo, HIGH);
-  cm = tijd / 58.2;         // We vinden ervan de afstand.
-  lcd.setCursor(0,0);
-  lcd.print("Afstand = ");
-  lcd.print(cm);
+  float cmt = tijd / 58.2;         // We vinden ervan de afstand.
+  if(cmt != cmt_tmp)
+  {
+   delay(500);
+   lcd.setCursor(0,0);
+   lcd.print("Afstand =");
+   lcd.print(cmt);
+   lcd.print("cm");
+   cmt_tmp= cmt;
+  }
   
 }
 
 void _motorRight(){
+  digitalWrite(SpeedPin,40);
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW);
 }
 
 void _motorLeft(){
+  digitalWrite(SpeedPin,40);
   digitalWrite(IN1,LOW);
   digitalWrite(IN2,HIGH);
 }
 
-void  _motorStop(){
+void  _motorStop()
+{
+   
    digitalWrite(IN1,HIGH);
    digitalWrite(IN2,HIGH);
  }
 
-int _mototState(){
+
+
+//It checks if the motor is running and sends us a boolean value.
+int _mototState()
+{
   int m1= digitalRead(IN1);
   int m2= digitalRead(IN2);
   if (m1==HIGH && m2 ==HIGH){
@@ -138,6 +157,7 @@ int _mototState(){
   }
   
  }
+
 
 
 
@@ -158,7 +178,7 @@ void Button4()
     // delay, so take it as the actual current state:
 
     // if the button state has changed:
-    if (reading4 != lastButtonState4) 
+    if (reading4 != buttonState4) 
     {
       buttonState4 = reading4;
       motorState = _mototState();
@@ -196,21 +216,19 @@ void Button4()
 
 
 lastButtonState4 = reading4;
-
-
 }
 
 void Button3(){
  int reading3 = digitalRead(buttonPin3);
 
- if (reading3 != buttonState3) {
+ if (reading3 != lastButtonState3) {
     // reset the debouncing timer
     lastDebounceTime = millis();
   }
 
   if ((millis() - lastDebounceTime) > debounceDelay) {
    
-    if (reading3 != lastButtonState3) {
+    if (reading3 != buttonState3) {
       buttonState3 = reading3;
       motorState = _mototState();
 
@@ -251,9 +269,11 @@ void Button3(){
 lastButtonState3 = reading3;
 }
 
-void Button2(){
+
+void Button2()
+{
  int reading2 = digitalRead(buttonPin2);
- if (reading2 != buttonState2) {
+ if (reading2 != lastButtonState2) {
     // reset the debouncing timer
     lastDebounceTime = millis();
   }
@@ -263,7 +283,7 @@ void Button2(){
     // delay, so take it as the actual current state:
 
     // if the button state has changed:
-    if (reading2 != lastButtonState2) {
+    if (reading2 != buttonState2) {
       buttonState2 = reading2;
 
     //Als de buton 2 wordt ingedrukt en de motor niet start
@@ -303,17 +323,19 @@ void Button2(){
 lastButtonState2 = reading2;
 }
 
-void Button1(){
+
+void Button1()
+{
  int reading1 = digitalRead(buttonPin1);
 
- if (reading1 != buttonState1) {
+ if (reading1 != lastButtonState1) {
     // reset the debouncing timer
     lastDebounceTime = millis();
   }
 
   if ((millis() - lastDebounceTime) > debounceDelay) {
    
-    if (reading1 != lastButtonState1) {
+    if (reading1 != buttonState1) {
       buttonState1 = reading1;
 
       //Als de buton 1 wordt ingedrukt en de motor niet start
@@ -352,17 +374,22 @@ lastButtonState1 = reading1;
 void loop() 
 {
  MeasureDistance();
+ 
  Button1();
+ 
  MeasureDistance();
+ 
  Button2();
+ 
  MeasureDistance();
+ 
  Button3();
+ 
  MeasureDistance();
+ 
  Button4();
  MeasureDistance();
 
-
-
 }
 
-// Not : motorun state ni kontrol et hangi durumda motor blokerd woord true mu yoksa false mi bunu gozden  gecirmelisin.
+Not: debounce ile ilgili lbir problemim var ve calismadi. bunu gozden gecirmeliyim.
