@@ -1,2 +1,2 @@
-# Arduino 
-# The codes should either be run with Arduino or a project should be created in PlatFormIO and copied to the main file in the CSS part.
+# Eerste kod is gemaakt met debounce en apart vier button.
+#Tweede kod is gemaakt met vier button die maar alleen een signaal geven.
